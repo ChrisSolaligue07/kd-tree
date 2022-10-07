@@ -12,12 +12,12 @@
 #include "Point.hpp"
 #include "BoundedPQueue.h"
 
+// ElemType: Tipo de valor del dato del nodo.
+// N: Cantidad de dimensiones por punto.
 template<size_t N, typename ElemType>
 class KDTree {
 public:
     struct KdNode {
-        // ElemType -> Tipo de valor del dato del nodo.
-        // N -> Cantidad de dimensiones por punto.
         Point<N> punto_s;
         KdNode *moves[2];
         ElemType value;
@@ -40,11 +40,11 @@ public:
 
     KDTree &operator=(const KDTree &rhs);
 
-    [[nodiscard]] size_t dimension() const;
+    size_t dimension() const;
 
-    [[nodiscard]] size_t size() const;
+    size_t size() const;
 
-    [[nodiscard]] bool empty() const;
+    bool empty() const;
 
     bool contains(const Point<N> &pt) const;
 
@@ -64,9 +64,12 @@ public:
 
     std::vector<ElemType> knn_query(const Point<N> &key, size_t k) const;
 
-    void nearest_neighbor(KdNode *current_node, const Point<N> &key, BoundedPQueue<ElemType> &nearest_neighbors_candidates, int depth) const;
+    void
+    nearest_neighbor(KdNode *current_node, const Point<N> &key, BoundedPQueue<ElemType> &nearest_neighbors_candidates,
+                     int depth) const;
 
-    void _nearest_neighbor_(KdNode *&current_node, KdNode *&nearest_neighbors_candidate, const Point<N> &key, double &best_distance, int depth) const;
+    void _nearest_neighbor_(KdNode *&current_node, KdNode *&nearest_neighbors_candidate, const Point<N> &key,
+                            double &best_distance, int depth) const;
 
     KdNode *cpy_tree(KdNode *_root_, Point<N> &pt, const ElemType &value);
 
@@ -90,8 +93,8 @@ KDTree<N, ElemType>::KDTree() {
 template<size_t N, typename ElemType>
 KDTree<N, ElemType>::~KDTree() {
     KdNode *tmp;
-    for(KdNode *i = root; i; i = tmp){
-        if(!i->moves[0]){
+    for (KdNode *i = root; i; i = tmp) {
+        if (!i->moves[0]) {
             tmp = i->moves[1];
             delete i;
         } else {
@@ -104,7 +107,6 @@ KDTree<N, ElemType>::~KDTree() {
 
 template<size_t N, typename ElemType>
 KDTree<N, ElemType>::KDTree(const KDTree &rhs) {
-    // TODO(me): Fill this in.
     root = cpy_tree(rhs.root, rhs.root->punto_s, rhs.root->value);
     dimension_ = N;
     size_ = rhs.size_;
@@ -112,8 +114,7 @@ KDTree<N, ElemType>::KDTree(const KDTree &rhs) {
 
 template<size_t N, typename ElemType>
 KDTree<N, ElemType> &KDTree<N, ElemType>::operator=(const KDTree &rhs) {
-    // TODO(me): Fill this in.
-    if (this != &rhs){
+    if (this != &rhs) {
         d_resource(root);
         root = cpy_tree(rhs.root, rhs.root->punto_s, rhs.root->value);
         size_ = rhs.size_;
@@ -122,11 +123,12 @@ KDTree<N, ElemType> &KDTree<N, ElemType>::operator=(const KDTree &rhs) {
 }
 
 template<size_t N, typename ElemType>
-typename KDTree<N, ElemType>::KdNode *KDTree<N, ElemType>::cpy_tree(KdNode *_root_, Point<N> &pt, const ElemType &value) {
-    if (_root_ == NULL){
-        return NULL;
+typename KDTree<N, ElemType>::KdNode *
+KDTree<N, ElemType>::cpy_tree(KdNode *_root_, Point<N> &pt, const ElemType &value) {
+    if (_root_ == nullptr) {
+        return nullptr;
     }
-    KdNode *n_node = new KdNode(_root_->punto_s, _root_->value);
+    auto *n_node = new KdNode(_root_->punto_s, _root_->value);
     n_node->moves[0] = cpy_tree(_root_->moves[0], _root_->punto_s, _root_->value);
     n_node->moves[1] = cpy_tree(_root_->moves[1], _root_->punto_s, _root_->value);
     return n_node;
@@ -155,17 +157,13 @@ size_t KDTree<N, ElemType>::size() const {
 
 template<size_t N, typename ElemType>
 bool KDTree<N, ElemType>::empty() const {
-    if (size_ == 0){
-        return true;
-    } else {
-        return false;
-    }
+    return size_ == 0;
 }
 
 template<size_t N, typename ElemType>
 bool KDTree<N, ElemType>::find(KdNode *&i, Point<N> pt) const {
     int axis = 0;
-    for(i = root ; i && i->punto_s != pt ;i = i->moves[pt[axis] >= i->punto_s[axis]], axis++){
+    for (i = root; i && i->punto_s != pt; i = i->moves[pt[axis] >= i->punto_s[axis]], axis++) {
         if (axis == pt.size()) { axis = 0; }
     }
     if (i != nullptr && i->punto_s == pt) {
@@ -177,39 +175,21 @@ bool KDTree<N, ElemType>::find(KdNode *&i, Point<N> pt) const {
 
 template<size_t N, typename ElemType>
 bool KDTree<N, ElemType>::contains(const Point<N> &pt) const {
-    /*
-    int axis = 0;
-    for(KdNode *i = root; i; i = i->moves[ pt[axis] >= i->punto_s[axis] ], axis++){
-        if (pt == i->punto_s){
-            return true;
-        }
-        if (axis == pt.size()){ axis = 0; }
-    }
-    return false;
-    */
-
-    /*if (find(pt)){
-        return true;
-    } else {
-        return false;
-    }*/
     KdNode *i;
     return find(i, pt);
 }
 
 template<size_t N, typename ElemType>
-bool KDTree<N, ElemType>::find(const Point<N> pt, KDTree::KdNode *&node_ant, KDTree::KdNode *&node_sig, int &axis){
-    // Una dimensión -> Inserción Lineal
-    // Más de dos dimensiones -> Inserción por axis
+bool KDTree<N, ElemType>::find(const Point<N> pt, KDTree::KdNode *&node_ant, KDTree::KdNode *&node_sig, int &axis) {
+    // Inserción por axis
     // pt : dato de que se busca
     // root->punto_s[] : dato dentro del árbol
-
-    for(node_sig = root; node_sig && node_sig->punto_s != pt
-            ; node_sig = node_sig->moves[pt[axis] >= node_sig->punto_s[axis]], axis++){
-        if(axis == pt.size()){ axis = 0; }
+    for (node_sig = root;
+         node_sig && node_sig->punto_s != pt; node_sig = node_sig->moves[pt[axis] >= node_sig->punto_s[axis]], axis++) {
+        if (axis == pt.size()) { axis = 0; }
         node_ant = node_sig;
     }
-    if(node_sig != nullptr && node_sig->punto_s == pt){
+    if (node_sig != nullptr && node_sig->punto_s == pt) {
         // std::cout << "node_sig: " << node_sig->value << std::endl;
         return false;
     }
@@ -234,7 +214,7 @@ bool KDTree<N, ElemType>::insert(const Point<N> &pt, const ElemType &value) {
             axis--;
             // std::cout << "Axis : " << axis << std::endl;
             node_sig = new KdNode(pt, value);
-            node_sig->nivel ++;
+            node_sig->nivel++;
             if (pt[axis] >= node_ant->punto_s[axis]) {
                 node_ant->moves[1] = node_sig;
                 size_++;
@@ -244,7 +224,7 @@ bool KDTree<N, ElemType>::insert(const Point<N> &pt, const ElemType &value) {
             }
             return true;
         } else {
-            if(node_sig != nullptr){
+            if (node_sig != nullptr) {
                 // std::cout << "Replace data..." << std::endl;
                 node_sig->value = value;    // Valor ya existe, solo se actualiza su valor
             }
@@ -263,27 +243,7 @@ ElemType &KDTree<N, ElemType>::operator[](const Point<N> &pt) {
      *  Tengan en cuenta que esta función no sobrecarga const por que el árbol puede mutar.
      */
     KdNode *i = root;
-    /*int axis = 0;
-    for(; i; i = i->moves[pt[axis] >= i->punto_s[axis]], axis++){
-        if (i->punto_s == pt){
-            return (i->value);  // Si el punto existe retorna el valor
-        }
-        if (axis == pt.size()){ axis = 0; }
-    }
-    // std::cout << "Punto no existe - Creando uno nuevo." << std::endl;
-    if (i == nullptr){
-        insert(pt, {});
-        i = root;
-        axis = 0;
-        for(; i; i = i->moves[pt[axis] >= i->punto_s[axis]], axis++){
-            if (i->punto_s == pt){
-                return (i->value);
-            }
-            if (axis == pt.size()){ axis = 0; }
-        }
-    }
-*/
-    if (find(i, pt)){
+    if (find(i, pt)) {
         return i->value;
     } else {
         // std::cout << "Punto no existe - Creando uno nuevo." << std::endl;
@@ -296,42 +256,30 @@ ElemType &KDTree<N, ElemType>::operator[](const Point<N> &pt) {
 template<size_t N, typename ElemType>
 ElemType &KDTree<N, ElemType>::at(const Point<N> &pt) {
     const auto &th = *this;
-    return const_cast<ElemType&>(th.at(pt));
+    return const_cast<ElemType &>(th.at(pt));
 }
 
 template<size_t N, typename ElemType>
 const ElemType &KDTree<N, ElemType>::at(const Point<N> &pt) const {
     int axis = 0;
-    for(KdNode *i = root; i; i = i->moves[pt[axis] >= i->punto_s[axis]], axis++){
-        if (pt == i->punto_s){
+    for (KdNode *i = root; i; i = i->moves[pt[axis] >= i->punto_s[axis]], axis++) {
+        if (pt == i->punto_s) {
             return i->value;
         }
-        if (axis == pt.size()){ axis = 0; }
+        if (axis == pt.size()) { axis = 0; }
     }
     throw std::out_of_range("No se encontro el punto.");
 }
 
 template<size_t N, typename ElemType>
 ElemType KDTree<N, ElemType>::knn_value(const Point<N> &key, size_t k) const {
-    // TODO(me): Fill this in.
     /*
      * Dado un punto v y un entero key, encuentra los k puntos en el KD-Tree más cercanos a key y
      * devuelve el valor más común asociado con esos puntos. En caso de empate, se elegirá uno de
      * los valores más frecuentes.
      */
     BoundedPQueue<ElemType> pQueue(k);
-    if (empty())
-        return ElemType();
-
     nearest_neighbor(root, key, pQueue, {});
-
-/*
-    KdNode *n = nullptr;
-    KdNode *curr = root;
-    double best = std::numeric_limits<double>::infinity();
-    _nearest_neighbor_(curr, n, key, best, {});
-*/
-
     std::unordered_map<ElemType, int> counter;
     while (!pQueue.empty()) {
         ++counter[pQueue.dequeueMin()];
@@ -339,17 +287,12 @@ ElemType KDTree<N, ElemType>::knn_value(const Point<N> &key, size_t k) const {
 
     ElemType result;
     int cnt = -1;
-    for (const auto &p : counter) {
+    for (const auto &p: counter) {
         if (p.second > cnt) {
             result = p.first;
             cnt = p.second;
         }
     }
-/*
-    std::cout << "A : " << result << "\n";
-    std::cout << "B : " << n->value << "\n";
-*/
-
     return result;
 }
 
@@ -362,21 +305,23 @@ std::vector<ElemType> KDTree<N, ElemType>::knn_query(const Point<N> &key, size_t
 }
 
 template<size_t N, typename ElemType>
-void KDTree<N, ElemType>::nearest_neighbor(KdNode *current_node, const Point<N> &key, BoundedPQueue<ElemType> &nearest_neighbors_candidates, int depth) const {
-    if (!current_node){
+void KDTree<N, ElemType>::nearest_neighbor(KdNode *current_node, const Point<N> &key,
+                                           BoundedPQueue<ElemType> &nearest_neighbors_candidates, int depth) const {
+    if (!current_node) {
         return;
     }
     nearest_neighbors_candidates.enqueue(current_node->value, (distance(current_node->punto_s, key)));
     int axis = depth % dimension_;
     bool right = false;
-    if (key[axis] < current_node->punto_s[axis]){
+    if (key[axis] < current_node->punto_s[axis]) {
         right = true;
         nearest_neighbor(current_node->moves[0], key, nearest_neighbors_candidates, ++depth);
     } else {
         right = false;
         nearest_neighbor(current_node->moves[1], key, nearest_neighbors_candidates, ++depth);
     }
-    if (nearest_neighbors_candidates.size() < nearest_neighbors_candidates.maxSize() || fabs(current_node->punto_s[axis] - key[axis]) < nearest_neighbors_candidates.worst()){
+    if (nearest_neighbors_candidates.size() < nearest_neighbors_candidates.maxSize() ||
+        fabs(current_node->punto_s[axis] - key[axis]) < nearest_neighbors_candidates.worst()) {
         if (right) {
             nearest_neighbor(current_node->moves[1], key, nearest_neighbors_candidates, ++depth);
         } else {
@@ -388,16 +333,16 @@ void KDTree<N, ElemType>::nearest_neighbor(KdNode *current_node, const Point<N> 
 template<size_t N, typename ElemType>
 void KDTree<N, ElemType>::_nearest_neighbor_(KdNode *&current_node, KdNode *&nearest_neighbors_candidate,
                                              const Point<N> &key, double &best_distance, int depth) const {
-    if (!current_node){
+    if (!current_node) {
         return;
     }
-    if (distance(current_node->punto_s, key) < best_distance){
+    if (distance(current_node->punto_s, key) < best_distance) {
         best_distance = distance(current_node->punto_s, key);
         nearest_neighbors_candidate = current_node;
     }
     int axis = depth % dimension_;
     bool right = false;
-    if (key[axis] < current_node->punto_s[axis]){
+    if (key[axis] < current_node->punto_s[axis]) {
         right = true;
         _nearest_neighbor_(current_node->moves[0], nearest_neighbors_candidate, key, best_distance, ++depth);
     } else {
@@ -405,9 +350,8 @@ void KDTree<N, ElemType>::_nearest_neighbor_(KdNode *&current_node, KdNode *&nea
         _nearest_neighbor_(current_node->moves[1], nearest_neighbors_candidate, key, best_distance, ++depth);
     }
 
-    if (fabs(current_node->punto_s[axis] - key[axis]) < distance(nearest_neighbors_candidate->punto_s, key)){
-        // if (fabs(current_node->punto_s[axis] - key[axis]) < std::numeric_limits<double>::infinity()){
-        if (right){
+    if (fabs(current_node->punto_s[axis] - key[axis]) < distance(nearest_neighbors_candidate->punto_s, key)) {
+        if (right) {
             _nearest_neighbor_(current_node->moves[1], nearest_neighbors_candidate, key, best_distance, ++depth);
         } else {
             _nearest_neighbor_(current_node->moves[0], nearest_neighbors_candidate, key, best_distance, ++depth);
