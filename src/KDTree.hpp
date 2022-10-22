@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 #include "Point.hpp"
 #include "BoundedPQueue.h"
 
